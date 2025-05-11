@@ -1,0 +1,42 @@
+{
+  "name": "cnj-processor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint . --ext .ts",
+    "deploy": "serverless deploy",
+    "dev": "serverless offline",
+    "logs:receiver": "serverless logs -f receiver",
+    "logs:processor": "serverless logs -f processor"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.806.0",
+    "@aws-sdk/client-sqs": "^3.806.0",
+    "@aws-sdk/lib-dynamodb": "^3.806.0",
+    "axios": "^1.9.0",
+    "http-errors": "^2.0.0",
+    "middy": "^0.36.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.149",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.17",
+    "@typescript-eslint/eslint-plugin": "^8.32.0",
+    "@typescript-eslint/parser": "^8.32.0",
+    "eslint": "^9.26.0",
+    "jest": "^29.7.0",
+    "serverless": "^4.14.3",
+    "serverless-esbuild": "^1.55.0",
+    "serverless-iam-roles-per-function": "^3.2.0",
+    "serverless-offline": "^14.4.0",
+    "ts-jest": "^29.3.2",
+    "typescript": "^5.8.3"
+  }
+}

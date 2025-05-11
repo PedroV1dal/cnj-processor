@@ -1,0 +1,43 @@
+# Dependências
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Diretórios temporários
+temp/
+tmp/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Variáveis de ambiente
+.env
+.env.*.local
+
+# Compilados e builds
+dist/
+build/
+.out/
+.next/
+coverage/
+
+# Cache
+.cache/
+.nyc_output/
+.vscode/
+.idea/
+
+# Arquivos de lock (se você quiser ignorar um deles)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Testes e relatórios
+jest-coverage/
+test-results.xml

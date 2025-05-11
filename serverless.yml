@@ -1,0 +1,254 @@
+service: cnj-processor
+
+frameworkVersion: "3"
+
+plugins:
+  - serverless-esbuild
+  - serverless-iam-roles-per-function
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+    SQS_QUEUE_URL: !Ref CNJQueue
+    EXTERNAL_API_URL: ${param:apiUrl, 'https://api.example.com/cnj'}
+    EXTERNAL_API_KEY: ${param:apiKey, 'dummy-key-for-dev'}
+    LOG_LEVEL: ${param:logLevel, 'info'}
+  tracing:
+    lambda: true
+    apiGateway: true
+
+custom:
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
+    target: "node18"
+    define:
+      "process.env.NODE_ENV": "'${self:provider.stage}'"
+    platform: "node"
+    concurrency: 10
+
+  volumetry:
+    low:
+      batchSize: 1
+      maximumBatchingWindow: 0
+      reservedConcurrency: 1
+    high:
+      batchSize: 10
+      maximumBatchingWindow: 30
+      reservedConcurrency: 10
+
+functions:
+  receiver:
+    handler: src/interfaces/handlers/receiver.handler
+    events:
+      - http:
+          path: cnj
+          method: post
+          cors: true
+          authorizer:
+            type: API_KEY
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sqs:SendMessage
+        Resource: !GetAtt CNJQueue.Arn
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource: "*"
+
+  processor:
+    handler: src/interfaces/handlers/processor.handler
+    events:
+      - sqs:
+          arn: !GetAtt CNJQueue.Arn
+          batchSize: ${self:custom.volumetry.high.batchSize}
+          maximumBatchingWindow: ${self:custom.volumetry.high.maximumBatchingWindow}
+    reservedConcurrency: ${self:custom.volumetry.high.reservedConcurrency}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: !GetAtt CNJTable.Arn
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource: "*"
+
+resources:
+  Resources:
+    CNJTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: cnj
+            AttributeType: S
+          - AttributeName: status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: cnj
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: StatusIndex
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+
+    CNJQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-queue-${self:provider.stage}
+        VisibilityTimeout: 300
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt CNJDeadLetterQueue.Arn
+          maxReceiveCount: 3
+
+    CNJDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-dlq-${self:provider.stage}
+        MessageRetentionPeriod: 1209600
+
+    ApiGatewayApiKey:
+      Type: AWS::ApiGateway::ApiKey
+      Properties:
+        Name: ${self:service}-key-${self:provider.stage}
+        Enabled: true
+
+    ApiGatewayUsagePlan:
+      Type: AWS::ApiGateway::UsagePlan
+      Properties:
+        UsagePlanName: ${self:service}-usage-plan-${self:provider.stage}
+        ApiStages:
+          - ApiId: !Ref ApiGatewayRestApi
+            Stage: ${self:provider.stage}
+        Throttle:
+          BurstLimit: 200
+          RateLimit: 100
+
+    ApiGatewayUsagePlanKey:
+      Type: AWS::ApiGateway::UsagePlanKey
+      Properties:
+        KeyId: !Ref ApiGatewayApiKey
+        KeyType: API_KEY
+        UsagePlanId: !Ref ApiGatewayUsagePlan
+
+    CNJDashboard:
+      Type: AWS::CloudWatch::Dashboard
+      Properties:
+        DashboardName: ${self:service}-${self:provider.stage}
+        DashboardBody: !Sub |
+          {
+            "widgets": [
+              {
+                "type": "metric",
+                "x": 0,
+                "y": 0,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${self:service}-${self:provider.stage}-receiver" ],
+                    [ ".", "Errors", ".", "." ],
+                    [ ".", "Duration", ".", "." ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "${self:provider.region}",
+                  "title": "Receiver Lambda Metrics",
+                  "period": 300
+                }
+              },
+              {
+                "type": "metric",
+                "x": 12,
+                "y": 0,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${self:service}-${self:provider.stage}-processor" ],
+                    [ ".", "Errors", ".", "." ],
+                    [ ".", "Duration", ".", "." ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "${self:provider.region}",
+                  "title": "Processor Lambda Metrics",
+                  "period": 300
+                }
+              },
+              {
+                "type": "metric",
+                "x": 0,
+                "y": 6,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                    [ "AWS/SQS", "NumberOfMessagesSent", "QueueName", "${self:service}-queue-${self:provider.stage}" ],
+                    [ ".", "NumberOfMessagesReceived", ".", "." ],
+                    [ ".", "ApproximateNumberOfMessagesVisible", ".", "." ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "${self:provider.region}",
+                  "title": "SQS Queue Metrics",
+                  "period": 300
+                }
+              },
+              {
+                "type": "metric",
+                "x": 12,
+                "y": 6,
+                "width": 12,
+                "height": 6,
+                "properties": {
+                  "metrics": [
+                    [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${self:service}-${self:provider.stage}" ],
+                    [ ".", "ConsumedWriteCapacityUnits", ".", "." ]
+                  ],
+                  "view": "timeSeries",
+                  "stacked": false,
+                  "region": "${self:provider.region}",
+                  "title": "DynamoDB Metrics",
+                  "period": 300
+                }
+              }
+            ]
+          }
+
+  Outputs:
+    ApiEndpoint:
+      Description: "API Gateway endpoint URL"
+      Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}/cnj"
+    ApiKey:
+      Description: "API Key ID"
+      Value: !Ref ApiGatewayApiKey
+    QueueUrl:
+      Description: "SQS Queue URL"
+      Value: !Ref CNJQueue
+    DynamoDBTable:
+      Description: "DynamoDB Table Name"
+      Value: !Ref CNJTable
