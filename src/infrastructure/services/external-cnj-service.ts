@@ -20,7 +20,6 @@ export class HttpExternalCNJService implements ExternalCNJService {
       },
     });
 
-    // Add retry interceptor
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
