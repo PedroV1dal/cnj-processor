@@ -1,4 +1,4 @@
-# CNJ Processor - Serverless AWS
+![image](https://github.com/user-attachments/assets/1a875b81-6b55-415c-8c72-02c79a89d547)# CNJ Processor - Serverless AWS
 
 Serviço serverless para processamento assíncrono de números CNJ (Cadastro Nacional de Justiça).
 
@@ -56,6 +56,9 @@ Implementado para proteger contra falhas na API externa:
 - **Autorização**: IAM Roles com permissões mínimas necessárias
 - **Criptografia**: Em trânsito e em repouso
 - **Validação**: Validação de entrada para prevenir injeções
+
+![image](https://github.com/user-attachments/assets/c249ce36-5189-4ca4-95a5-b632571ed065)
+
 
 ## Considerações de Custo
 
