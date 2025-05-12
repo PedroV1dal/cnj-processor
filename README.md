@@ -57,8 +57,9 @@ Implementado para proteger contra falhas na API externa:
 - **Criptografia**: Em trânsito e em repouso
 - **Validação**: Validação de entrada para prevenir injeções
 
-![image](https://github.com/user-attachments/assets/c249ce36-5189-4ca4-95a5-b632571ed065)
+### Diagrama da arquitetura
 
+![image](https://github.com/user-attachments/assets/c249ce36-5189-4ca4-95a5-b632571ed065)
 
 ## Considerações de Custo
 
