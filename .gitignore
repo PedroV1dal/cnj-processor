@@ -23,6 +23,7 @@ Thumbs.db
 # Compilados e builds
 dist/
 build/
+.build
 .out/
 .next/
 coverage/
