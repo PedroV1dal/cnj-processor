@@ -95,7 +95,75 @@ npm run deploy -- --stage dev
 
 # Deploy para produção
 npm run deploy -- --stage prod
+
 ```
+
+### Testando Localmente
+
+Para testar a aplicação em ambiente de desenvolvimento local:
+
+```bash
+# Instalar dependências
+npm install
+
+# Compilar TypeScript
+npm run build
+
+# Iniciar servidor local
+npx serverless offline
+
+```
+
+O servidor estará disponível em: http://localhost:3000/dev/cnj
+
+### Testando a API
+
+Usando curl
+
+```bash
+curl -X POST \
+  http://localhost:3000/dev/cnj \
+  -H "Content-Type: application/json" \
+  -d '{"cnj":"1234567-12.1234.1.12.1234"}'
+```
+
+Usando Bruno/Postman/Insomnia
+
+Configure uma requisição POST para http://localhost:3000/dev/cnj
+Adicione o header Content-Type: application/json
+No corpo da requisição, use:
+
+```json
+{
+  "cnj": "1234567-12.1234.1.12.1234"
+}
+```
+
+## Resposta Esperada
+
+```json
+{
+  "success": true,
+  "requestId": "2afe8d4c-d075-47f4-88d0-e068e541a8b6",
+  "message": "CNJ received for processing"
+}
+```
+
+### Comportamento em Ambiente Local
+
+Em ambiente de desenvolvimento local:
+
+    SQS é simulado: As mensagens não são realmente enviadas para AWS SQS
+    DynamoDB não é acessado: O processamento completo não ocorre
+    API Externa não é chamada: Não há comunicação com serviços externos
+
+Isso permite testar o fluxo básico da API sem necessidade de credenciais AWS ou serviços externos configurados.
+
+Para visualizar o comportamento, observe os logs no console onde o serverless-offline está sendo executado. Você verá mensagens indicando o mock do SQS:
+
+{"level":"info","message":"Mock: Message sent to SQS","service":"receiver",...}
+
+Para testar o fluxo completo com processamento real, é necessário fazer o deploy na AWS.
 
 ### Uso da API
 

@@ -1,6 +1,6 @@
 service: cnj-processor
 
-frameworkVersion: "3"
+frameworkVersion: "4"
 
 plugins:
   - serverless-esbuild
@@ -22,6 +22,9 @@ provider:
   tracing:
     lambda: true
     apiGateway: true
+
+build:
+  esbuild: false
 
 custom:
   esbuild:
