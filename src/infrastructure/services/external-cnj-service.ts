@@ -1,9 +1,11 @@
 import axios, { AxiosInstance } from "axios";
 import { ExternalCNJService } from "@domain/interfaces/services";
 import { Logger } from "@shared/logger";
+import { CircuitBreaker } from "../patterns/circuit-breaker";
 
 export class HttpExternalCNJService implements ExternalCNJService {
   private readonly client: AxiosInstance;
+  private readonly circuitBreaker: CircuitBreaker;
 
   constructor(
     baseURL: string,
@@ -49,40 +51,44 @@ export class HttpExternalCNJService implements ExternalCNJService {
         return this.client(config);
       }
     );
+
+    this.circuitBreaker = new CircuitBreaker(3, 60000);
   }
 
   async fetchCNJData(cnj: string): Promise<any> {
-    try {
-      this.logger.info("Fetching CNJ data from external API", { cnj });
-
-      const response = await this.client.get(`/process/${cnj}`);
-
-      this.logger.debug("Received response from external API", {
-        cnj,
-        statusCode: response.status,
-      });
-
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        this.logger.error("External API request failed", {
+    return this.circuitBreaker.execute(
+      async () => {
+        try {
+          this.logger.info("Fetching CNJ data from external API", { cnj });
+          const response = await this.client.get(`/process/${cnj}`);
+          this.logger.debug("Received response from external API", {
+            cnj,
+            statusCode: response.status,
+          });
+          return response.data;
+        } catch (error) {
+          if (axios.isAxiosError(error)) {
+            this.logger.error("External API request failed", {
+              cnj,
+              statusCode: error.response?.status,
+              error: error.message,
+            });
+            throw new Error(`Failed to fetch CNJ data: ${error.message}`);
+          }
+          throw error;
+        }
+      },
+      async () => {
+        this.logger.warn("Circuit breaker activated, using fallback data", {
           cnj,
-          statusCode: error.response?.status,
-          error: error.message,
         });
-
-        const enhancedError = new Error(
-          `Failed to fetch CNJ data: ${error.message}`
-        );
-        throw enhancedError;
+        return {
+          cnj,
+          status: "FALLBACK",
+          message: "Dados de fallback devido a falhas no serviço externo",
+          timestamp: new Date().toISOString(),
+        };
       }
-
-      this.logger.error("Unexpected error calling external API", {
-        cnj,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-
-      throw error;
-    }
+    );
   }
 }
