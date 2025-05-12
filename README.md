@@ -27,6 +27,22 @@ A arquitetura foi projetada para atender dois cenários:
    - Configuração de batch size para processamento eficiente
    - Monitoramento via CloudWatch
 
+### Padrões de Resiliência
+
+## Circuit Breaker
+
+Implementado para proteger contra falhas na API externa:
+
+    Abre o circuito após 3 falhas consecutivas
+    Fornece dados de fallback quando aberto
+    Tenta restabelecer conexão após 60 segundos
+
+## Retry com Backoff Exponencial
+
+    Tentativas automáticas para chamadas à API externa
+    Intervalo entre tentativas aumenta exponencialmente
+    Máximo de 3 tentativas antes de falhar
+
 ## Observabilidade
 
 - **Logs estruturados**: Formato JSON para facilitar consultas
