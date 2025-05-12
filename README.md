@@ -76,3 +76,40 @@ npm run deploy -- --stage dev
 # Deploy para produção
 npm run deploy -- --stage prod
 ```
+
+### Uso da API
+
+Endpoint
+
+POST /cnj
+
+Headers
+
+Content-Type: application/json  
+x-api-key: sua-api-key
+
+Corpo da Requisição
+
+```bash
+{
+  "cnj": "1234567-12.1234.1.12.1234"
+}
+```
+
+Resposta de Sucesso
+
+```bash
+{
+  "requestId": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "RECEIVED",
+  "message": "CNJ received for processing"
+}
+```
+
+### Implementação Conceitual
+
+Esta solução é uma implementação conceitual completa. Para deploy real:
+
+    Configure uma conta AWS
+    Instale e configure AWS CLI
+    Siga as instruções de deploy acima
