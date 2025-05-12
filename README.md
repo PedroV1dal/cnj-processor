@@ -1,5 +1,3 @@
-![image](https://github.com/user-attachments/assets/1a875b81-6b55-415c-8c72-02c79a89d547)# CNJ Processor - Serverless AWS
-
 Serviço serverless para processamento assíncrono de números CNJ (Cadastro Nacional de Justiça).
 
 ## Arquitetura
