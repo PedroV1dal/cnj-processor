@@ -15,7 +15,7 @@
       "@domain/*": ["src/domain/*"],
       "@application/*": ["src/application/*"],
       "@infrastructure/*": ["src/infrastructure/*"],
-      "@interfaces/*": ["src/interfaces/*"],
+      "@interface/*": ["src/interface/*"],
       "@shared/*": ["src/shared/*"]
     }
   },
