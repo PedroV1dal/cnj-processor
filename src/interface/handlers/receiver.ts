@@ -1,12 +1,18 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import middy from "middy";
-import { jsonBodyParser, httpErrorHandler, cors } from "middy/middlewares";
+import jsonBodyParser from "@middy/http-json-body-parser";
+import httpErrorHandler from "@middy/http-error-handler";
+import cors from "@middy/http-cors";
 import createHttpError from "http-errors";
 
 import { ReceiveCNJUseCase } from "../../application/use-cases/receive-cnj";
 import { SQSQueueService } from "../../infrastructure/aws/sqs-client";
 import { createLogger } from "../../shared/logger";
 import { createResponse } from "../serializers/response";
+
+interface CNJRequest {
+  cnj: string;
+}
 
 const logger = createLogger("receiver");
 const queueService = new SQSQueueService(
@@ -26,8 +32,8 @@ const receiverHandler = async (
       requestId: event.requestContext.requestId,
     });
 
-    const body = JSON.parse(event.body ?? "{}");
-    const { cnj } = body;
+    const body = event.body ?? {};
+    const cnj = (body as any).cnj;
 
     if (!cnj) {
       logger.warn("Missing CNJ in request", {

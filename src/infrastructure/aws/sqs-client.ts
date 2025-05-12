@@ -17,6 +17,11 @@ export class SQSQueueService implements QueueService {
 
   async sendMessage(message: any): Promise<string> {
     try {
+      if (process.env.IS_OFFLINE || process.env.NODE_ENV === "dev") {
+        this.logger.info("Mock: Message sent to SQS", { message });
+        return "mock-message-id-" + Date.now();
+      }
+
       const command = new SendMessageCommand({
         QueueUrl: this.queueUrl,
         MessageBody: JSON.stringify(message),
